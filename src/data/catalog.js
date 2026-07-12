@@ -1,6 +1,5 @@
 // Dữ liệu danh mục — khi có backend, thay bằng GET /api/catalog
 import { Gamepad2, Headphones, Cpu, Flower2 } from "lucide-react-native";
-import { ImageBackground } from "react-native";
 import momoIcon from "../imgs/momo_icon.png";
 import zaloIcon from "../imgs/zalo_icon.png";
 import bankIcon from "../imgs/bank_icon.png";
@@ -46,19 +45,19 @@ export const PAYMENTS = [
     id: "momo",
     name: "Ví MoMo",
     note: "Thanh toán tức thì",
-    ImageBackground: momoIcon,
+    icon: momoIcon,
   },
   {
     id: "zalopay",
     name: "ZaloPay",
     note: "Miễn phí giao dịch",
-    ImageBackground: zaloIcon,
+    icon: zaloIcon,
   },
   {
     id: "bank",
     name: "Chuyển khoản",
     note: "Xác nhận 1–5 phút",
-    ImageBackground: bankIcon,
+    icon: bankIcon,
   },
 ];
 
