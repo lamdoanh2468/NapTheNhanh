@@ -1,0 +1,12 @@
+{
+  "expo": {
+    "name": "Nạp Thẻ Ngay",
+    "slug": "napthengay",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": true,
+    "ios": { "supportsTablet": true },
+    "android": { "package": "vn.napthengay.app" }
+  }
+}
