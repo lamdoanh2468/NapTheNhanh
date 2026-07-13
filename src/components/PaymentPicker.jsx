@@ -1,4 +1,4 @@
-import { View, Text, Pressable, StyleSheet } from "react-native";
+import { View, Text, Pressable, Image, StyleSheet } from "react-native";
 import { PAYMENTS } from "../data/catalog";
 import { colors, spacing, radius, font } from "../theme";
 
@@ -15,7 +15,7 @@ export default function PaymentPicker({ value, onChange }) {
             accessibilityState={{ selected: active }}
             style={[s.item, active && s.itemActive]}
           >
-            <View style={[s.dot, { backgroundColor: p.color }]} />
+            <Image source={p.icon} style={s.icon} resizeMode="contain" />
             <View>
               <Text style={s.name}>{p.name}</Text>
               <Text style={s.note}>{p.note}</Text>
@@ -35,7 +35,7 @@ const s = StyleSheet.create({
     borderRadius: radius.md,
   },
   itemActive: { borderColor: colors.primary, backgroundColor: colors.primarySoft },
-  dot: { width: 32, height: 32, borderRadius: radius.sm },
+  icon: { width: 32, height: 32, borderRadius: radius.sm },
   name: { fontWeight: "700", fontSize: font.sm, color: colors.text },
   note: { fontSize: font.xs, color: colors.textMuted },
 });

@@ -1,0 +1,18 @@
+{
+  "name": "napthengay-server",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Backend thanh toán VNPay cho app Nạp Thẻ Ngay",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "node --watch src/index.js"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "vnpay": "^2.4.0"
+  }
+}
