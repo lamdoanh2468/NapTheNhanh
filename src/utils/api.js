@@ -6,7 +6,9 @@
  * QUAN TRỌNG: quotePrice() và createOrder() phải chạy ở SERVER trong bản thật.
  */
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import * as WebBrowser from "expo-web-browser";
 import { CARD_TYPES, PAYMENTS } from "../data/catalog";
+import { API_BASE_URL, PAYMENT_RETURN_URL } from "./config";
 
 const delay = (ms) => new Promise((r) => setTimeout(r, ms));
 const KEY_ORDERS = "ntn_orders";
@@ -54,50 +56,105 @@ export function quotePrice({ cardTypeId, denom, qty }) {
 }
 
 /* ---------- Đơn hàng ---------- */
-// TODO(server): POST /api/orders → tạo đơn PENDING, trả payUrl.
-// Trên mobile, mở payUrl bằng expo-web-browser (MoMo/ZaloPay deep link),
-// rồi chờ IPN callback ở server xác nhận PAID mới cấp mã.
+// Hỏi trạng thái đơn ở server tới khi có kết quả cuối (DELIVERED/FAILED) hoặc hết lượt.
+async function pollOrder(orderId, { tries = 20, interval = 1500 } = {}) {
+  let last = null;
+  for (let i = 0; i < tries; i++) {
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/orders/${orderId}`);
+      if (res.ok) {
+        last = await res.json();
+        if (last.status === "DELIVERED" || last.status === "FAILED") return last;
+      }
+    } catch {
+      // mạng chập chờn → thử lại
+    }
+    await delay(interval);
+  }
+  return last;
+}
+
+// Lưu đơn trả về từ server vào AsyncStorage để HistoryScreen xem lại offline.
+async function cacheOrder(serverOrder, { userId, idempotencyKey }) {
+  const pay = PAYMENTS.find((p) => p.id === serverOrder.paymentId);
+  const local = {
+    id: serverOrder.id,
+    idempotencyKey,
+    userId,
+    cardName: serverOrder.cardName,
+    denom: serverOrder.denom,
+    qty: serverOrder.qty,
+    subtotal: serverOrder.subtotal,
+    discount: serverOrder.discount,
+    total: serverOrder.total,
+    email: serverOrder.email,
+    payment: pay?.name || "—",
+    status: serverOrder.status,
+    createdAt: serverOrder.createdAt || new Date().toISOString(),
+    codes: serverOrder.codes || [],
+  };
+  const orders = await read(KEY_ORDERS, []);
+  const idx = orders.findIndex((o) => o.id === local.id);
+  if (idx >= 0) orders[idx] = local;
+  else orders.unshift(local);
+  await write(KEY_ORDERS, orders);
+  return local;
+}
+
+// Luồng thật với VNPay:
+//   1) POST /api/orders  → server tạo đơn PENDING (tính giá phía server) + trả payUrl.
+//   2) Mở payUrl bằng expo-web-browser; đóng khi VNPay redirect về deep link app.
+//   3) Poll GET /api/orders/:id → server đã nhận IPN (hoặc Return ở chế độ dev) → cấp mã.
 export async function createOrder({
   userId, cardTypeId, denom, qty, email, paymentId, idempotencyKey, onStatus,
 }) {
+  // Idempotency phía client: tránh double-tap tạo 2 đơn khi chưa kịp sang cổng.
   const orders = await read(KEY_ORDERS, []);
   const existing = orders.find((o) => o.idempotencyKey === idempotencyKey);
-  if (existing) return existing;
+  if (existing && existing.status === "DELIVERED") return existing;
 
-  const card = CARD_TYPES.find((c) => c.id === cardTypeId);
-  const pay = PAYMENTS.find((p) => p.id === paymentId);
-  const { subtotal, discount, total } = quotePrice({ cardTypeId, denom, qty });
-
-  const order = {
-    id: "NT" + Date.now().toString().slice(-8),
-    idempotencyKey, userId,
-    cardName: card.name, cardTypeId,
-    denom, qty, subtotal, discount, total, email,
-    payment: pay.name,
-    status: "PENDING",
-    createdAt: new Date().toISOString(),
-    codes: [],
-  };
   onStatus?.("PENDING");
-  orders.unshift(order);
-  await write(KEY_ORDERS, orders);
 
-  await delay(900);                       // giả lập mở cổng thanh toán
-  order.status = "PAID";
-  onStatus?.("PAID");
+  // 1) Tạo đơn ở server, lấy payUrl.
+  let created;
+  try {
+    const res = await fetch(`${API_BASE_URL}/api/orders`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ userId, cardTypeId, denom, qty, email, paymentId }),
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.error || "Không tạo được đơn hàng.");
+    }
+    created = await res.json();
+  } catch (e) {
+    if (e.message?.includes("Network request failed")) {
+      throw new Error("Không kết nối được máy chủ thanh toán. Kiểm tra server đang chạy.");
+    }
+    throw e;
+  }
 
-  await delay(600);                       // giả lập IPN callback + cấp mã
-  order.codes = Array.from({ length: qty }, () => ({
-    serial: "S" + Math.random().toString().slice(2, 12),
-    pin:
-      Math.random().toString(36).slice(2, 8).toUpperCase() + "-" +
-      Math.random().toString(36).slice(2, 8).toUpperCase(),
-  }));
-  order.status = "DELIVERED";
-  onStatus?.("DELIVERED");
+  // 2) Mở cổng VNPay; openAuthSessionAsync tự đóng khi bắt được redirect về PAYMENT_RETURN_URL.
+  const browser = await WebBrowser.openAuthSessionAsync(created.payUrl, PAYMENT_RETURN_URL);
+  if (browser.type === "cancel" || browser.type === "dismiss") {
+    // Người dùng đóng trình duyệt — vẫn poll một nhịp phòng khi đã trả tiền xong.
+  }
 
-  await write(KEY_ORDERS, orders.map((o) => (o.id === order.id ? order : o)));
-  return order;
+  onStatus?.("PAID"); // đang chờ server xác nhận
+  const final = await pollOrder(created.orderId);
+
+  if (final?.status === "DELIVERED") {
+    onStatus?.("DELIVERED");
+    return cacheOrder(final, { userId, idempotencyKey });
+  }
+  if (final?.status === "FAILED") {
+    await cacheOrder({ ...final }, { userId, idempotencyKey });
+    throw new Error("Thanh toán thất bại hoặc đã huỷ.");
+  }
+  throw new Error(
+    "Chưa nhận được xác nhận thanh toán. Nếu đã trừ tiền, mã sẽ xuất hiện trong Lịch sử giao dịch sau ít phút."
+  );
 }
 
 // TODO(server): GET /api/orders?page=&status=

@@ -3,6 +3,7 @@
     "name": "Nạp Thẻ Ngay",
     "slug": "napthengay",
     "version": "1.0.0",
+    "scheme": "napthengay",
     "orientation": "portrait",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
