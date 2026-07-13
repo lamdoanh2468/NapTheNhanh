@@ -8,7 +8,7 @@ Server Node/Express giữ `secureSecret`, tạo URL thanh toán VNPay và xác n
 ```bash
 cd server
 npm install
-cp .env.example .env   # (đã tạo sẵn)
+cp .env .env   # (đã tạo sẵn)
 ```
 
 Đăng ký merchant **sandbox** tại https://sandbox.vnpayment.vn/devreg/ để lấy `tmnCode` + `secsecret`,

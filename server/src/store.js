@@ -35,12 +35,14 @@ function issueCodes(qty) {
   }));
 }
 
-// Xác nhận đã thanh toán → cấp mã. Idempotent: gọi nhiều lần (IPN + return) chỉ cấp một lần.
+// Xác nhận đã thanh toán. Idempotent: gọi nhiều lần (IPN + return) chỉ xử lý một lần.
+// - Đơn thẻ game (kind "card"): cấp mã thẻ.
+// - Đơn hàng vật lý (kind "product"): không có mã, chỉ chuyển sang trạng thái đã thanh toán/chờ giao.
 // Trả về "already" nếu đơn đã được xác nhận trước đó.
 export function markPaid(order) {
   if (order.status === "PAID" || order.status === "DELIVERED") return "already";
   order.status = "DELIVERED";
-  order.codes = issueCodes(order.qty);
+  order.codes = order.kind === "product" ? [] : issueCodes(order.qty);
   order.paidAt = new Date().toISOString();
   return "ok";
 }

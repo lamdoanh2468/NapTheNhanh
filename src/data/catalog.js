@@ -1,8 +1,12 @@
 // Dữ liệu danh mục — khi có backend, thay bằng GET /api/catalog
 import { Gamepad2, Headphones, Cpu, Flower2 } from "lucide-react-native";
-import momoIcon from "../imgs/momo_icon.png";
-import zaloIcon from "../imgs/zalo_icon.png";
 import bankIcon from "../imgs/bank_icon.png";
+import vcoinCard from "../imgs/V_COIN_01.png";
+import garenaCard from "../imgs/GARENA_01.png";
+import zingCard from "../imgs/ZING_01.png";
+import appotaCard from "../imgs/APPOTA_CARD_01.png";
+import oncashCard from "../imgs/ONCASH_01.png";
+import bitCard from "../imgs/BIT_01.png";
 
 export const COMPANY = {
   name: "CÔNG TY CỔ PHẦN FUNTEK VIỆT NAM",
@@ -27,58 +31,96 @@ export const CATEGORIES = [
 ];
 
 export const CARD_TYPES = [
-  { id: "v-coin", name: "V-Coin", color: "#e63946", discount: 0.03 },
-  { id: "garena", name: "Garena", color: "#f77f00", discount: 0.02 },
-  { id: "zing", name: "Zing", color: "#1d4ed8", discount: 0.025 },
-  { id: "appota", name: "Appota", color: "#0891b2", discount: 0.04 },
-  { id: "gate", name: "Gate", color: "#7c3aed", discount: 0.03 },
-  { id: "oncash", name: "On Cash", color: "#059669", discount: 0.05 },
-  { id: "bit", name: "Bit", color: "#db2777", discount: 0.02 },
+  { id: "v-coin", name: "V-Coin", color: "#e63946", discount: 0.03, icon: vcoinCard },
+  { id: "garena", name: "Garena", color: "#f77f00", discount: 0.02, icon: garenaCard },
+  { id: "zing", name: "Zing", color: "#1d4ed8", discount: 0.025, icon: zingCard },
+  { id: "appota", name: "Appota", color: "#0891b2", discount: 0.04, icon: appotaCard },
+  { id: "oncash", name: "On Cash", color: "#059669", discount: 0.05, icon: oncashCard },
+  { id: "bit", name: "Bit", color: "#db2777", discount: 0.02, icon: bitCard },
 ];
 
 export const DENOMINATIONS = [
   10000, 20000, 50000, 100000, 200000, 500000, 1000000,
 ];
 
+// Một cổng duy nhất: VNPay. Bên trong trang VNPay người dùng vẫn chọn được
+// QR ngân hàng, ví MoMo/ZaloPay, thẻ ATM nội địa hoặc thẻ quốc tế.
 export const PAYMENTS = [
   {
-    id: "momo",
-    name: "Ví MoMo",
-    note: "Thanh toán tức thì",
-    icon: momoIcon,
-  },
-  {
-    id: "zalopay",
-    name: "ZaloPay",
-    note: "Miễn phí giao dịch",
-    icon: zaloIcon,
-  },
-  {
-    id: "bank",
-    name: "Chuyển khoản",
-    note: "Xác nhận 1–5 phút",
+    id: "vnpay",
+    name: "Cổng VNPay",
+    note: "QR ngân hàng, ví điện tử, thẻ ATM/quốc tế",
     icon: bankIcon,
   },
 ];
 
+// Sản phẩm vật lý — dữ liệu lấy từ shop napthengay.vn (phụ kiện game & hàng công nghệ).
+// `kind` quyết định ảnh minh hoạ SVG hiển thị (xem ProductThumb). `sku` là mã server
+// dùng để tính lại giá — GIÁ Ở SERVER MỚI LÀ NGUỒN SỰ THẬT (server/src/products.js).
 export const PRODUCTS = {
   accessory: [
-    { id: "a1", name: "Tai nghe gaming HyperX Cloud II", price: 1890000 },
-    { id: "a2", name: "Chuột Logitech G Pro X Superlight", price: 2790000 },
-    { id: "a3", name: "Bàn phím cơ Akko 3068B", price: 1450000 },
-    { id: "a4", name: "Lót chuột Razer Gigantus V2", price: 390000 },
+    { sku: "ACC-01", kind: "usb", name: "USB 3.2 Kingston 128GB DataTraveler Exodia DTX", price: 310000 },
+    { sku: "ACC-02", kind: "usb", name: "USB 3.2 Kingston 64GB DataTraveler Exodia DTX", price: 159000 },
+    { sku: "ACC-03", kind: "usb", name: "USB 3.2 Kingston 32GB DataTraveler Exodia DTX", price: 89000 },
+    { sku: "ACC-04", kind: "webcam", name: "Webcam Modern Microsoft (Đen)", price: 2450000 },
+    { sku: "ACC-05", kind: "webcam", name: "Webcam Dahua HTI-UC325", price: 649000 },
+    { sku: "ACC-06", kind: "webcam", name: "Webcam Dahua DH-UZ3", price: 990000 },
+    { sku: "ACC-07", kind: "webcam", name: "Webcam Dahua HTI-UC320", price: 475000 },
+    { sku: "ACC-08", kind: "webcam", name: "Webcam Newmen CM303", price: 599000 },
+    { sku: "ACC-09", kind: "webcam", name: "Webcam Rapoo C270L", price: 709000 },
+    { sku: "ACC-10", kind: "webcam", name: "Webcam Hikvision DS-UL8", price: 5660000 },
+    { sku: "ACC-11", kind: "webcam", name: "Webcam Hikvision DS-UL4", price: 4400000 },
+    { sku: "ACC-12", kind: "webcam", name: "Webcam Hikvision DS-UL2", price: 3760000 },
+    { sku: "ACC-13", kind: "webcam", name: "Webcam Hikvision DS-U18", price: 4890000 },
+    { sku: "ACC-14", kind: "webcam", name: "Webcam Hikvision DS-U12", price: 1620000 },
+    { sku: "ACC-15", kind: "webcam", name: "Webcam Hikvision DS-U02", price: 599000 },
+    { sku: "ACC-16", kind: "webcam", name: "Webcam Hikvision DS-U525", price: 1650000 },
+    { sku: "ACC-17", kind: "webcam", name: "Webcam Hikvision DS-U320", price: 980000 },
+    { sku: "ACC-18", kind: "usb", name: "USB 3.1 Sandisk Ultra Luxe 256GB SDCZ74", price: 929000 },
+    { sku: "ACC-19", kind: "usb", name: "USB SanDisk Cruzer 64GB CZ33 Cruzer Fit", price: 213000 },
+    { sku: "ACC-20", kind: "powerbank", name: "Quạt Mini Kiêm Sạc Dự Phòng IDMIX TEDDY BEAR 2000mAh", price: 480000 },
+    { sku: "ACC-21", kind: "webcam", name: "Webcam ROG EYE S", price: 2390000 },
+    { sku: "ACC-22", kind: "webcam", name: "Webcam ASUS C3", price: 1263000 },
+    { sku: "ACC-23", kind: "webcam", name: "Webcam PK-925H A4tech (Đen bạc)", price: 795000 },
+    { sku: "ACC-24", kind: "usb", name: "USB 3.1 TypeC Sandisk Ultra Dual Drive 128GB", price: 500000 },
   ],
   tech: [
-    { id: "t1", name: "Sạc dự phòng Anker 20.000mAh", price: 890000 },
-    { id: "t2", name: "Ổ cứng SSD Samsung 980 1TB", price: 2190000 },
-    { id: "t3", name: "Webcam Logitech C920", price: 1590000 },
+    { sku: "TECH-01", kind: "laptop", name: "Laptop Asus X515EA-EJ1046W (i5-1135G7) (Bạc)", price: 17690000 },
+    { sku: "TECH-02", kind: "chair", name: "Ghế gaming E-dra Nappa EGC2022 Lux (Trắng)", price: 7990000 },
+    { sku: "TECH-03", kind: "chair", name: "Ghế gaming E-dra Nappa EGC2022 Lux (Xanh)", price: 7990000 },
+    { sku: "TECH-04", kind: "chair", name: "Ghế gaming E-dra Nappa EGC2022 Lux (Đen)", price: 7990000 },
+    { sku: "TECH-05", kind: "chair", name: "Ghế gaming E-dra Apollo EGC227 Plus (Trắng)", price: 2090000 },
+    { sku: "TECH-06", kind: "chair", name: "Ghế gaming E-dra Apollo EGC227 Plus (Đỏ)", price: 2090000 },
+    { sku: "TECH-07", kind: "chair", name: "Ghế gaming E-dra Apollo EGC227 Plus (Đen)", price: 2090000 },
+    { sku: "TECH-08", kind: "chair", name: "Ghế gaming E-dra Apollo EGC227 (Trắng)", price: 1990000 },
+    { sku: "TECH-09", kind: "chair", name: "Ghế gaming E-dra Apollo EGC227 (Đỏ)", price: 1990000 },
+    { sku: "TECH-10", kind: "laptop", name: "Laptop HP Pavilion X360 14-dy0076TU (i5-1135G7) (Vàng)", price: 20990000 },
+    { sku: "TECH-11", kind: "laptop", name: "Laptop HP VICTUS 16-e0170AX (Ryzen 7 5800H) (Đen)", price: 28890000 },
+    { sku: "TECH-12", kind: "laptop", name: "Laptop HP VICTUS 16-d0204TX (i5-11400H) (Đen)", price: 27590000 },
+    { sku: "TECH-13", kind: "laptop", name: "Laptop Asus A515EA-BQ1530W (i3-1115G4) (Bạc)", price: 15990000 },
+    { sku: "TECH-14", kind: "vga", name: "VGA Gigabyte Radeon RX 6700 XT EAGLE OC 12G", price: 25590000 },
+    { sku: "TECH-15", kind: "mainboard", name: "Mainboard Gigabyte Z690 AERO D", price: 12300000 },
+    { sku: "TECH-16", kind: "mainboard", name: "Mainboard Gigabyte Z690 AORUS PRO DDR4", price: 8700000 },
+    { sku: "TECH-17", kind: "mainboard", name: "Mainboard Gigabyte Z690 AERO G", price: 8650000 },
+    { sku: "TECH-18", kind: "mainboard", name: "Mainboard Gigabyte Z690 AORUS ELITE AX", price: 8200000 },
+    { sku: "TECH-19", kind: "mainboard", name: "Mainboard Gigabyte Z690 AORUS ELITE", price: 7650000 },
+    { sku: "TECH-20", kind: "mainboard", name: "Mainboard Gigabyte B560M DS3H V2", price: 2690000 },
+    { sku: "TECH-21", kind: "laptop", name: "Laptop Gigabyte G5 KC-5S11130SB (i5-10500H) (Đen)", price: 27990000 },
+    { sku: "TECH-22", kind: "phone", name: "Điện thoại Samsung Galaxy A32 (6GB/128GB/90Hz) (Xanh)", price: 6360000 },
+    { sku: "TECH-23", kind: "monitor", name: 'Màn hình LCD HP 23.8" E24mv G4 (1920x1080, IPS)', price: 7900000 },
+    { sku: "TECH-24", kind: "ssd", name: "Ổ cứng SSD Samsung 2TB SATA III 870 QVO", price: 6200000 },
   ],
   flower: [
-    { id: "f1", name: "Bó hồng đỏ 20 bông", price: 650000 },
-    { id: "f2", name: "Giỏ hoa tulip pastel", price: 890000 },
-    { id: "f3", name: "Hộp hoa baby trắng", price: 450000 },
+    { sku: "FLW-01", kind: "flower", name: "Bó hồng đỏ 20 bông", price: 650000 },
+    { sku: "FLW-02", kind: "flower", name: "Giỏ hoa tulip pastel", price: 890000 },
+    { sku: "FLW-03", kind: "flower", name: "Hộp hoa baby trắng", price: 450000 },
   ],
 };
+
+// Phí vận chuyển sản phẩm vật lý (khớp Chính sách vận chuyển): miễn phí từ 500.000đ,
+// dưới mức đó phụ thu 30.000đ. Server tính lại — đây chỉ để hiển thị trước.
+export const FREE_SHIP_THRESHOLD = 500000;
+export const SHIPPING_FEE = 30000;
 
 export const NEWS = [
   {
@@ -166,7 +208,7 @@ export const ARTICLES = {
   "thong-tin-san-pham": {
     title: "Thông tin sản phẩm",
     body: [
-      "Nạp Thẻ Ngay là nền tảng phân phối thẻ game trực tuyến do Công ty Cổ phần Funtek Việt Nam vận hành. Chúng tôi cung cấp mã thẻ của các nhà phát hành V-Coin, Garena, Zing, Appota, Gate, On Cash và Bit.",
+      "Nạp Thẻ Ngay là nền tảng phân phối thẻ game trực tuyến do Công ty Cổ phần Funtek Việt Nam vận hành. Chúng tôi cung cấp mã thẻ của các nhà phát hành V-Coin, Garena, Zing, Appota, On Cash và Bit.",
       "Mỗi mã thẻ là một sản phẩm số, được cấp trực tiếp từ nhà phát hành và gửi tới email khách hàng ngay sau khi thanh toán thành công. Mã có giá trị sử dụng một lần.",
       "Ngoài thẻ game, website còn phân phối phụ kiện game, hàng công nghệ và hoa tươi. Các sản phẩm vật lý được giao theo Chính sách vận chuyển.",
     ],

@@ -1,7 +1,7 @@
 import { View, Text, ScrollView, Pressable, StyleSheet, Linking, Alert } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import {
-  User, LogIn, LogOut, ChevronRight, Phone, Mail, HelpCircle, BookOpen, FileText,
+  User, LogIn, LogOut, ChevronRight, Phone, Mail, HelpCircle, BookOpen, FileText, QrCode,
 } from "lucide-react-native";
 import { COMPANY, CARD_TYPES } from "../data/catalog";
 import { useAuth } from "../context/AuthContext";
@@ -50,8 +50,10 @@ export default function AccountScreen() {
                 <User size={22} color="#fff" />
               </View>
               <View style={{ flex: 1 }}>
-                <Text style={s.name}>{user.email.split("@")[0]}</Text>
-                <Text style={s.email}>{user.email}</Text>
+                <Text style={s.name}>
+                  {user.name || user.phone || (user.email ? user.email.split("@")[0] : "Người dùng")}
+                </Text>
+                <Text style={s.email}>{user.phone || user.email || "Đã đăng nhập"}</Text>
               </View>
             </View>
             <Pressable onPress={confirmLogout} style={s.logoutBtn}>
@@ -72,6 +74,11 @@ export default function AccountScreen() {
             </Pressable>
           </>
         )}
+      </View>
+
+      <View style={s.card}>
+        <Text style={s.section}>Chia sẻ</Text>
+        <Item icon={QrCode} label="Mã QR mở phiên bản web" onPress={() => navigation.navigate("Share")} />
       </View>
 
       <View style={s.card}>

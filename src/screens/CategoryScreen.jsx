@@ -4,6 +4,7 @@ import { useNavigation } from "@react-navigation/native";
 import { CATEGORIES, PRODUCTS } from "../data/catalog";
 import { vnd } from "../utils/format";
 import EmptyState from "../components/EmptyState";
+import ProductThumb from "../components/ProductThumb";
 import { colors, spacing, radius, font, shadow } from "../theme";
 
 export default function CategoryScreen() {
@@ -53,16 +54,22 @@ export default function CategoryScreen() {
           />
         }
         renderItem={({ item: p }) => (
-          <View style={s.product}>
-            <View style={s.thumb} />
+          <Pressable
+            style={s.product}
+            onPress={() => navigation.navigate("Checkout", { product: p })}
+          >
+            <ProductThumb kind={p.kind} style={s.thumb} />
             <View style={s.info}>
               <Text style={s.pname} numberOfLines={2}>{p.name}</Text>
               <Text style={s.price}>{vnd(p.price)}</Text>
-              <Pressable style={s.btn}>
-                <Text style={s.btnText}>Thêm vào giỏ</Text>
+              <Pressable
+                style={s.btn}
+                onPress={() => navigation.navigate("Checkout", { product: p })}
+              >
+                <Text style={s.btnText}>Đặt mua</Text>
               </Pressable>
             </View>
-          </View>
+          </Pressable>
         )}
       />
     </View>
@@ -90,7 +97,7 @@ const s = StyleSheet.create({
     overflow: "hidden",
     ...shadow.card,
   },
-  thumb: { aspectRatio: 1, backgroundColor: colors.bg },
+  thumb: { aspectRatio: 1, borderRadius: 0 },
   info: { padding: spacing.md, gap: 6 },
   pname: { fontSize: font.sm, fontWeight: "600", color: colors.text, minHeight: 34 },
   price: { fontWeight: "800", color: colors.primaryDark, fontSize: font.base },

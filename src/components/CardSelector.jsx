@@ -1,4 +1,4 @@
-import { View, Text, Pressable, StyleSheet } from "react-native";
+import { View, Text, Pressable, Image, StyleSheet } from "react-native";
 import { Check } from "lucide-react-native";
 import { CARD_TYPES } from "../data/catalog";
 import { colors, spacing, radius, font } from "../theme";
@@ -16,9 +16,13 @@ export default function CardSelector({ value, onChange }) {
             accessibilityState={{ selected: active }}
             style={[s.item, active && s.itemActive]}
           >
-            <View style={[s.logo, { backgroundColor: c.color }]}>
-              <Text style={s.logoText}>{c.name[0]}</Text>
-            </View>
+            {c.icon ? (
+              <Image source={c.icon} style={s.logo} resizeMode="contain" />
+            ) : (
+              <View style={[s.logo, s.logoFallback, { backgroundColor: c.color }]}>
+                <Text style={s.logoText}>{c.name[0]}</Text>
+              </View>
+            )}
             <Text style={s.name}>{c.name}</Text>
             <Text style={s.disc}>Chiết khấu {(c.discount * 100).toFixed(1)}%</Text>
             {active ? <Check size={16} color={colors.primary} style={s.check} /> : null}
@@ -39,10 +43,10 @@ const s = StyleSheet.create({
   },
   itemActive: { borderColor: colors.primary, backgroundColor: colors.primarySoft },
   logo: {
-    width: 36, height: 36, borderRadius: radius.md,
-    alignItems: "center", justifyContent: "center",
+    width: "100%", height: 64, borderRadius: radius.md,
     marginBottom: spacing.sm,
   },
+  logoFallback: { alignItems: "center", justifyContent: "center" },
   logoText: { color: "#fff", fontWeight: "800", fontSize: font.md },
   name: { fontWeight: "700", fontSize: font.sm, color: colors.text },
   disc: { fontSize: font.xs, color: colors.success, fontWeight: "600", marginTop: 2 },

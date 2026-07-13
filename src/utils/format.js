@@ -22,4 +22,5 @@ export const ORDER_STATUS = {
   PAID:      { label: "Đã thanh toán",  bg: colors.infoBg,    fg: colors.infoText },
   DELIVERED: { label: "Đã giao mã",     bg: colors.successBg, fg: colors.successText },
   FAILED:    { label: "Thất bại",       bg: colors.dangerBg,  fg: colors.dangerText },
+  CANCELLED: { label: "Đã huỷ",         bg: colors.border,    fg: colors.textMuted },
 };

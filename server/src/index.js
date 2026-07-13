@@ -15,6 +15,7 @@ import {
 import { config, assertConfig } from "./config.js";
 import { vnpay } from "./vnpay.js";
 import { quotePrice } from "./catalog.js";
+import { quoteProduct } from "./products.js";
 import {
   newOrderId,
   createOrder,
@@ -40,6 +41,19 @@ function publicBase(req) {
   return config.publicBaseUrl || `${req.protocol}://${req.get("host")}`;
 }
 
+/* Chỉ chấp nhận deep link về app (chống open-redirect). Không hợp lệ → dùng mặc định. */
+function safeAppReturn(url) {
+  if (typeof url === "string" && /^(napthengay:\/\/|exp(\+napthengay)?:\/\/)/.test(url)) {
+    return url;
+  }
+  return config.appReturnUrl;
+}
+
+/* Escape để nhúng an toàn vào thuộc tính HTML (href). */
+function htmlAttr(s) {
+  return String(s).replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+
 app.get("/", (_req, res) => res.json({ ok: true, service: "napthengay-vnpay" }));
 
 /* ============================================================
@@ -47,16 +61,56 @@ app.get("/", (_req, res) => res.json({ ok: true, service: "napthengay-vnpay" }))
  *    App gọi endpoint này, nhận payUrl rồi mở bằng trình duyệt.
  * ============================================================ */
 app.post("/api/orders", (req, res) => {
-  const { userId, cardTypeId, denom, qty, email, paymentId } = req.body || {};
+  const {
+    kind, userId, cardTypeId, denom, qty, items, shipping,
+    email, paymentId, returnUrl,
+  } = req.body || {};
 
-  const quote = quotePrice({ cardTypeId, denom, qty });
-  if (!quote) {
-    return res.status(400).json({ error: "Thông tin đơn hàng không hợp lệ." });
-  }
   if (!config.vnp.tmnCode || !config.vnp.secureSecret) {
     return res
       .status(503)
       .json({ error: "Server chưa cấu hình VNPay (thiếu tmnCode/secret)." });
+  }
+
+  // Dựng dữ liệu đơn theo loại: "product" (hàng vật lý) hay "card" (thẻ game — mặc định).
+  let orderData;
+  let total;
+  if (kind === "product") {
+    const quote = quoteProduct(items);
+    if (!quote) {
+      return res.status(400).json({ error: "Thông tin đơn hàng không hợp lệ." });
+    }
+    // Đơn vật lý cần địa chỉ giao hàng.
+    const s = shipping || {};
+    if (!s.name || !s.phone || !s.address) {
+      return res.status(400).json({ error: "Thiếu thông tin giao hàng (tên, SĐT, địa chỉ)." });
+    }
+    total = quote.total;
+    orderData = {
+      kind: "product",
+      items: quote.lines,
+      shipping: { name: s.name, phone: s.phone, address: s.address },
+      subtotal: quote.subtotal,
+      discount: quote.discount,
+      shippingFee: quote.shippingFee,
+      total: quote.total,
+    };
+  } else {
+    const quote = quotePrice({ cardTypeId, denom, qty });
+    if (!quote) {
+      return res.status(400).json({ error: "Thông tin đơn hàng không hợp lệ." });
+    }
+    total = quote.total;
+    orderData = {
+      kind: "card",
+      cardTypeId,
+      cardName: quote.card.name,
+      denom,
+      qty,
+      subtotal: quote.subtotal,
+      discount: quote.discount,
+      total: quote.total,
+    };
   }
 
   const orderId = newOrderId();
@@ -65,20 +119,15 @@ app.post("/api/orders", (req, res) => {
     userId: userId || null,
     email: email || null,
     paymentId: paymentId || null,
-    cardTypeId,
-    cardName: quote.card.name,
-    denom,
-    qty,
-    subtotal: quote.subtotal,
-    discount: quote.discount,
-    total: quote.total,
+    returnUrl: safeAppReturn(returnUrl),
+    ...orderData,
   });
 
   const now = new Date();
   const expire = new Date(now.getTime() + 15 * 60 * 1000); // hết hạn sau 15 phút
 
   const payUrl = vnpay.buildPaymentUrl({
-    vnp_Amount: quote.total, // TIỀN VND THẬT — thư viện tự nhân 100.
+    vnp_Amount: total, // TIỀN VND THẬT — thư viện tự nhân 100.
     vnp_IpAddr: clientIp(req),
     vnp_TxnRef: orderId, // mã đối soát, phải là duy nhất.
     vnp_OrderInfo: `Thanh toan don hang ${orderId}`,
@@ -89,7 +138,7 @@ app.post("/api/orders", (req, res) => {
     vnp_ExpireDate: dateFormat(expire),
   });
 
-  res.json({ orderId, payUrl, total: quote.total });
+  res.json({ orderId, payUrl, total });
 });
 
 /* ============================================================
@@ -116,10 +165,12 @@ app.get("/api/vnpay/return", (req, res) => {
   }
 
   // Trang trung gian tự chuyển về app qua deep link.
+  // Ưu tiên returnUrl app đã gửi khi tạo đơn (đúng cho Expo Go lẫn bản build), fallback mặc định.
   const status = ok ? "success" : "failed";
-  const deepLink = `${config.appReturnUrl}?orderId=${encodeURIComponent(
-    orderId
-  )}&status=${status}`;
+  const order = getOrder(orderId);
+  const base = safeAppReturn(order?.returnUrl);
+  const sep = base.includes("?") ? "&" : "?";
+  const deepLink = `${base}${sep}orderId=${encodeURIComponent(orderId)}&status=${status}`;
   res
     .status(200)
     .type("html")
@@ -131,7 +182,7 @@ app.get("/api/vnpay/return", (req, res) => {
 </head><body>
 <h2 class="${ok ? "ok" : "err"}">${ok ? "Thanh toán thành công" : "Thanh toán không thành công"}</h2>
 <p>Đang quay lại ứng dụng…</p>
-<a class="btn" href="${deepLink}">Mở app Nạp Thẻ Ngay</a>
+<a class="btn" href="${htmlAttr(deepLink)}">Mở app Nạp Thẻ Ngay</a>
 <script>setTimeout(function(){location.href=${JSON.stringify(deepLink)}},600);</script>
 </body></html>`);
 });
@@ -179,13 +230,19 @@ app.get("/api/orders/:id", (req, res) => {
   if (!order) return res.status(404).json({ error: "Không tìm thấy đơn." });
   res.json({
     id: order.id,
+    kind: order.kind || "card",
     status: order.status,
     total: order.total,
     subtotal: order.subtotal,
     discount: order.discount,
+    shippingFee: order.shippingFee,
+    // Đơn thẻ
     cardName: order.cardName,
     denom: order.denom,
     qty: order.qty,
+    // Đơn hàng vật lý
+    items: order.items,
+    shipping: order.shipping,
     email: order.email,
     paymentId: order.paymentId,
     codes: order.status === "DELIVERED" ? order.codes : [],

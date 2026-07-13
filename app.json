@@ -7,7 +7,26 @@
     "orientation": "portrait",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
-    "ios": { "supportsTablet": true },
-    "android": { "package": "vn.napthengay.app" }
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "cofer.app"
+    },
+    "android": {
+      "package": "cofer.app",
+      "googleServicesFile": "./google-services.json"
+    },
+    "plugins": [
+      "@react-native-firebase/app",
+      "@react-native-firebase/auth",
+      "@react-native-google-signin/google-signin",
+      [
+        "expo-build-properties",
+        {
+          "ios": {
+            "useFrameworks": "static"
+          }
+        }
+      ]
+    ]
   }
 }

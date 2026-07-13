@@ -3,38 +3,76 @@ import {
   View, Text, TextInput, Pressable, StyleSheet,
   KeyboardAvoidingView, Platform, ActivityIndicator,
 } from "react-native";
-import { useNavigation, useRoute } from "@react-navigation/native";
-import { isEmail } from "../utils/format";
+import { useNavigation } from "@react-navigation/native";
+import { Phone, ArrowLeft } from "lucide-react-native";
 import { useAuth } from "../context/AuthContext";
 import { colors, spacing, radius, font, shadow } from "../theme";
 
+// Chuyển số Việt Nam về E.164 cho Firebase: 0912345678 → +84912345678.
+function toE164(raw) {
+  const d = raw.replace(/[^\d+]/g, "");
+  if (d.startsWith("+")) return d;
+  if (d.startsWith("84")) return "+" + d;
+  if (d.startsWith("0")) return "+84" + d.slice(1);
+  return "+84" + d;
+}
+const isVnPhone = (raw) => /^0\d{9}$/.test(raw.replace(/\s/g, ""));
+
 export default function AuthScreen() {
-  const route = useRoute();
   const navigation = useNavigation();
-  const { login, register } = useAuth();
+  const { signInWithGoogle, sendOtp } = useAuth();
 
-  const [mode, setMode] = useState(route.params?.mode || "login");
-  const isLogin = mode === "login";
-
-  const [email, setEmail] = useState("");
-  const [pass, setPass] = useState("");
+  const [phone, setPhone] = useState("");
+  const [code, setCode] = useState("");
+  const [confirmation, setConfirmation] = useState(null); // có giá trị → đang ở bước nhập OTP
   const [err, setErr] = useState("");
   const [busy, setBusy] = useState(false);
 
-  const submit = async () => {
-    if (!isEmail(email)) return setErr("Email không hợp lệ");
-    if (pass.length < 6) return setErr("Mật khẩu tối thiểu 6 ký tự");
-
+  const onGoogle = async () => {
     setBusy(true);
     setErr("");
     try {
-      await (isLogin ? login : register)({ email, password: pass });
-      navigation.goBack(); // web: navigate(from). RN modal: đóng lại là về đúng chỗ.
+      await signInWithGoogle();
+      navigation.goBack(); // onAuthStateChanged đã cập nhật user
     } catch (e) {
-      setErr(e.message);
+      setErr(e.message || "Đăng nhập Google thất bại.");
     } finally {
       setBusy(false);
     }
+  };
+
+  const onSendOtp = async () => {
+    if (!isVnPhone(phone)) return setErr("Số điện thoại không hợp lệ (VD: 0912345678).");
+    setBusy(true);
+    setErr("");
+    try {
+      const conf = await sendOtp(toE164(phone));
+      setConfirmation(conf);
+    } catch (e) {
+      setErr(e.message || "Không gửi được mã OTP. Thử lại sau.");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const onConfirmOtp = async () => {
+    if (code.length < 6) return setErr("Nhập đủ 6 số mã OTP.");
+    setBusy(true);
+    setErr("");
+    try {
+      await confirmation.confirm(code);
+      navigation.goBack(); // đăng nhập thành công
+    } catch (e) {
+      setErr("Mã OTP không đúng hoặc đã hết hạn.");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const resetPhone = () => {
+    setConfirmation(null);
+    setCode("");
+    setErr("");
   };
 
   return (
@@ -43,47 +81,85 @@ export default function AuthScreen() {
       behavior={Platform.OS === "ios" ? "padding" : undefined}
     >
       <View style={s.card}>
-        <Text style={s.title}>{isLogin ? "Đăng nhập" : "Đăng ký"}</Text>
-        <Text style={s.sub}>
-          {isLogin
-            ? "Đăng nhập để mua thẻ và xem lịch sử giao dịch."
-            : "Tạo tài khoản để lưu mã thẻ và theo dõi đơn hàng."}
+        <Text style={s.title}>Đăng nhập</Text>
+        <Text style={s.sub}>Đăng nhập để mua thẻ, đặt hàng và xem lịch sử giao dịch.</Text>
+
+        {/* ĐN Google */}
+        <Pressable onPress={onGoogle} disabled={busy} style={[s.googleBtn, busy && s.disabled]}>
+          <View style={s.gIcon}>
+            <Text style={s.gIconText}>G</Text>
+          </View>
+          <Text style={s.googleText}>Tiếp tục với Google</Text>
+        </Pressable>
+
+        <View style={s.divider}>
+          <View style={s.line} />
+          <Text style={s.dividerText}>hoặc dùng số điện thoại</Text>
+          <View style={s.line} />
+        </View>
+
+        {/* ĐN số điện thoại — 2 bước: nhập số → nhập OTP */}
+        {!confirmation ? (
+          <>
+            <Text style={s.label}>Số điện thoại</Text>
+            <View style={s.phoneRow}>
+              <View style={s.prefix}>
+                <Phone size={15} color={colors.textMuted} />
+                <Text style={s.prefixText}>+84</Text>
+              </View>
+              <TextInput
+                value={phone}
+                onChangeText={(t) => { setPhone(t); setErr(""); }}
+                placeholder="0912 345 678"
+                placeholderTextColor={colors.textFaint}
+                keyboardType="phone-pad"
+                style={s.phoneInput}
+              />
+            </View>
+
+            {err ? <Text style={s.err}>{err}</Text> : null}
+
+            <Pressable onPress={onSendOtp} disabled={busy} style={[s.btn, busy && s.disabled]}>
+              {busy
+                ? <ActivityIndicator color="#fff" />
+                : <Text style={s.btnText}>Gửi mã OTP</Text>}
+            </Pressable>
+          </>
+        ) : (
+          <>
+            <Pressable onPress={resetPhone} style={s.back}>
+              <ArrowLeft size={15} color={colors.textMuted} />
+              <Text style={s.backText}>Đổi số ({phone})</Text>
+            </Pressable>
+
+            <Text style={s.label}>Mã OTP đã gửi tới {toE164(phone)}</Text>
+            <TextInput
+              value={code}
+              onChangeText={(t) => { setCode(t.replace(/\D/g, "").slice(0, 6)); setErr(""); }}
+              placeholder="______"
+              placeholderTextColor={colors.textFaint}
+              keyboardType="number-pad"
+              style={s.otpInput}
+              maxLength={6}
+            />
+
+            {err ? <Text style={s.err}>{err}</Text> : null}
+
+            <Pressable onPress={onConfirmOtp} disabled={busy} style={[s.btn, busy && s.disabled]}>
+              {busy
+                ? <ActivityIndicator color="#fff" />
+                : <Text style={s.btnText}>Xác nhận & đăng nhập</Text>}
+            </Pressable>
+
+            <Pressable onPress={onSendOtp} disabled={busy}>
+              <Text style={s.resend}>Gửi lại mã OTP</Text>
+            </Pressable>
+          </>
+        )}
+
+        <Text style={s.note}>
+          Bằng việc đăng nhập, bạn đồng ý với Điều khoản sử dụng và Chính sách bảo mật của Nạp Thẻ Ngay.
         </Text>
-
-        <Text style={s.label}>Email</Text>
-        <TextInput
-          value={email}
-          onChangeText={(t) => { setEmail(t); setErr(""); }}
-          keyboardType="email-address"
-          autoCapitalize="none"
-          autoCorrect={false}
-          textContentType="emailAddress"
-          style={s.input}
-        />
-
-        <Text style={s.label}>Mật khẩu</Text>
-        <TextInput
-          value={pass}
-          onChangeText={(t) => { setPass(t); setErr(""); }}
-          secureTextEntry
-          textContentType={isLogin ? "password" : "newPassword"}
-          style={s.input}
-        />
-
-        {err ? <Text style={s.err}>{err}</Text> : null}
-
-        <Pressable onPress={submit} disabled={busy} style={[s.btn, busy && s.btnDisabled]}>
-          {busy
-            ? <ActivityIndicator color="#fff" />
-            : <Text style={s.btnText}>{isLogin ? "Đăng nhập" : "Tạo tài khoản"}</Text>}
-        </Pressable>
-
-        <Pressable onPress={() => { setMode(isLogin ? "register" : "login"); setErr(""); }}>
-          <Text style={s.switch}>
-            {isLogin ? "Chưa có tài khoản? " : "Đã có tài khoản? "}
-            <Text style={s.switchLink}>{isLogin ? "Đăng ký" : "Đăng nhập"}</Text>
-          </Text>
-        </Pressable>
       </View>
     </KeyboardAvoidingView>
   );
@@ -100,24 +176,56 @@ const s = StyleSheet.create({
   },
   title: { fontWeight: "800", fontSize: font.xl, color: colors.text, marginBottom: spacing.xs },
   sub: { fontSize: font.sm, color: colors.textMuted, marginBottom: spacing.xl },
-  label: { fontSize: font.xs, fontWeight: "700", color: colors.textMuted, marginBottom: spacing.xs },
-  input: {
+
+  googleBtn: {
+    flexDirection: "row", alignItems: "center", justifyContent: "center", gap: spacing.md,
     borderWidth: 1, borderColor: colors.borderStrong,
-    borderRadius: radius.md,
-    paddingHorizontal: spacing.md, paddingVertical: 10,
-    fontSize: font.base, color: colors.text,
-    marginBottom: spacing.md,
+    borderRadius: radius.md, paddingVertical: spacing.md,
+    backgroundColor: colors.surface,
   },
-  err: { color: colors.danger, fontSize: font.xs, marginBottom: spacing.sm },
+  gIcon: {
+    width: 22, height: 22, borderRadius: 11,
+    backgroundColor: "#fff", borderWidth: 1, borderColor: colors.border,
+    alignItems: "center", justifyContent: "center",
+  },
+  gIconText: { fontWeight: "900", fontSize: font.sm, color: "#4285F4" },
+  googleText: { fontWeight: "700", fontSize: font.base, color: colors.text },
+
+  divider: { flexDirection: "row", alignItems: "center", gap: spacing.sm, marginVertical: spacing.lg },
+  line: { flex: 1, height: 1, backgroundColor: colors.border },
+  dividerText: { fontSize: font.xs, color: colors.textFaint },
+
+  label: { fontSize: font.xs, fontWeight: "700", color: colors.textMuted, marginBottom: spacing.xs },
+  phoneRow: {
+    flexDirection: "row", alignItems: "center",
+    borderWidth: 1, borderColor: colors.borderStrong, borderRadius: radius.md, overflow: "hidden",
+  },
+  prefix: {
+    flexDirection: "row", alignItems: "center", gap: 4,
+    paddingHorizontal: spacing.md, paddingVertical: 10,
+    borderRightWidth: 1, borderRightColor: colors.border, backgroundColor: colors.bg,
+  },
+  prefixText: { fontSize: font.base, fontWeight: "700", color: colors.textMuted },
+  phoneInput: { flex: 1, paddingHorizontal: spacing.md, paddingVertical: 10, fontSize: font.base, color: colors.text },
+
+  otpInput: {
+    borderWidth: 1, borderColor: colors.borderStrong, borderRadius: radius.md,
+    paddingHorizontal: spacing.md, paddingVertical: 12,
+    fontSize: font.xl, letterSpacing: 8, textAlign: "center", color: colors.text,
+  },
+
+  back: { flexDirection: "row", alignItems: "center", gap: 4, marginBottom: spacing.md },
+  backText: { fontSize: font.sm, color: colors.textMuted, fontWeight: "600" },
+
+  err: { color: colors.danger, fontSize: font.xs, marginTop: spacing.sm },
   btn: {
     backgroundColor: colors.primary,
-    paddingVertical: spacing.md,
-    borderRadius: radius.md,
-    alignItems: "center",
-    marginTop: spacing.xs,
+    paddingVertical: spacing.md, borderRadius: radius.md,
+    alignItems: "center", marginTop: spacing.md,
   },
-  btnDisabled: { opacity: 0.6 },
+  disabled: { opacity: 0.6 },
   btnText: { color: "#fff", fontWeight: "800", fontSize: font.base },
-  switch: { textAlign: "center", fontSize: font.sm, color: colors.textMuted, marginTop: spacing.lg },
-  switchLink: { color: colors.primaryDark, fontWeight: "700" },
+  resend: { textAlign: "center", color: colors.primaryDark, fontWeight: "700", fontSize: font.sm, marginTop: spacing.md },
+
+  note: { fontSize: font.xs, color: colors.textFaint, lineHeight: 16, marginTop: spacing.xl, textAlign: "center" },
 });

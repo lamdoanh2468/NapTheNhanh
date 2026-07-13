@@ -120,18 +120,38 @@ export default function HistoryScreen() {
         }
         renderItem={({ item: o }) => {
           const st = ORDER_STATUS[o.status];
+          const isProduct = o.kind === "product";
+          // Đơn hàng vật lý không có "mã thẻ" để giao → trạng thái DELIVERED hiển thị "Đã thanh toán".
+          const statusLabel = isProduct && o.status === "DELIVERED" ? "Đã thanh toán" : st.label;
+          const firstItem = o.items?.[0];
+          const moreCount = (o.items?.length || 0) - 1;
           return (
             <View style={s.order}>
               <View style={s.orderHead}>
                 <Text style={s.orderId}>#{o.id}</Text>
-                <Badge label={st.label} bg={st.bg} fg={st.fg} />
+                <Badge label={statusLabel} bg={st.bg} fg={st.fg} />
                 <Text style={s.time}>{formatDateTime(o.createdAt)}</Text>
               </View>
 
-              <Text style={s.meta}>
-                {o.cardName} · {vnd(o.denom)} × {o.qty} · {o.payment} ·{" "}
-                <Text style={s.total}>{vnd(o.total)}</Text>
-              </Text>
+              {isProduct ? (
+                <>
+                  <Text style={s.meta}>
+                    {firstItem ? `${firstItem.name} × ${firstItem.qty}` : "Đơn hàng"}
+                    {moreCount > 0 ? ` +${moreCount} sản phẩm` : ""} · {o.payment} ·{" "}
+                    <Text style={s.total}>{vnd(o.total)}</Text>
+                  </Text>
+                  {o.shipping ? (
+                    <Text style={s.ship}>
+                      Giao tới: {o.shipping.name} · {o.shipping.phone} · {o.shipping.address}
+                    </Text>
+                  ) : null}
+                </>
+              ) : (
+                <Text style={s.meta}>
+                  {o.cardName} · {vnd(o.denom)} × {o.qty} · {o.payment} ·{" "}
+                  <Text style={s.total}>{vnd(o.total)}</Text>
+                </Text>
+              )}
 
               {o.codes.length > 0 ? (
                 <View style={s.codeBox}>
@@ -174,6 +194,7 @@ const s = StyleSheet.create({
   orderId: { fontWeight: "800", fontSize: font.base, color: colors.text },
   time: { marginLeft: "auto", fontSize: font.xs, color: colors.textFaint },
   meta: { fontSize: font.sm, color: colors.textMuted, marginBottom: spacing.md },
+  ship: { fontSize: font.xs, color: colors.textFaint, marginTop: -spacing.sm, marginBottom: spacing.md },
   total: { fontWeight: "800", color: colors.primaryDark },
 
   codeBox: { backgroundColor: colors.bg, borderRadius: radius.md, padding: spacing.md },

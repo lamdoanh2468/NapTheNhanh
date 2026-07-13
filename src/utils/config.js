@@ -11,5 +11,14 @@ export const API_BASE_URL =
   process.env.EXPO_PUBLIC_API_URL ||
   (devHost ? `http://${devHost}:3000` : "http://localhost:3000");
 
-// Deep link app nhận sau khi thanh toán xong (khớp "scheme" trong app.json + APP_RETURN_URL server).
-export const PAYMENT_RETURN_URL = "napthengay://payment-result";
+// URL giao diện web của app (bản react-native-web) — dùng để hiện mã QR chia sẻ.
+// - Production: đặt EXPO_PUBLIC_WEB_URL = URL web đã deploy (vd https://app.napthengay.vn).
+// - Dev: để trống → tự dùng http://<IP máy dev>:8082 (chạy `expo start --web`), người
+//   cùng mạng WiFi quét là mở được. Trên emulator (localhost) thì link chỉ máy đó mở được,
+//   nên khi demo thật hãy đặt EXPO_PUBLIC_WEB_URL hoặc chạy trên điện thoại thật cùng WiFi.
+export const WEB_APP_URL =
+  process.env.EXPO_PUBLIC_WEB_URL ||
+  (devHost ? `http://${devHost}:8082` : "https://napthengay.vn");
+
+// Return URL sau thanh toán được sinh động bằng expo-linking (xem src/utils/api.js)
+// để chạy đúng cả trong Expo Go (exp://…) lẫn bản build standalone (napthengay://…).

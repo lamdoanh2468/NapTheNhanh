@@ -1,15 +1,17 @@
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
-import { View, ActivityIndicator } from "react-native";
-import { Home as HomeIcon, LayoutGrid, Clock3, Newspaper, User } from "lucide-react-native";
+import { View, ActivityIndicator, Pressable } from "react-native";
+import { Home as HomeIcon, LayoutGrid, Clock3, Newspaper, User, QrCode } from "lucide-react-native";
 
 import HomeScreen from "../screens/HomeScreen";
+import ShareScreen from "../screens/ShareScreen";
 import CategoryScreen from "../screens/CategoryScreen";
 import HistoryScreen from "../screens/HistoryScreen";
 import NewsScreen from "../screens/NewsScreen";
 import NewsDetailScreen from "../screens/NewsDetailScreen";
 import AccountScreen from "../screens/AccountScreen";
 import AuthScreen from "../screens/AuthScreen";
+import CheckoutScreen from "../screens/CheckoutScreen";
 import FaqScreen from "../screens/FaqScreen";
 import ArticleScreen from "../screens/ArticleScreen";
 import GuideScreen from "../screens/GuideScreen";
@@ -40,11 +42,21 @@ function Tabs() {
       <Tab.Screen
         name="Home"
         component={HomeScreen}
-        options={{
+        options={({ navigation }) => ({
           title: "Nạp thẻ",
           tabBarLabel: "Nạp thẻ",
           tabBarIcon: ({ color, size }) => <HomeIcon color={color} size={size} />,
-        }}
+          headerRight: () => (
+            <Pressable
+              onPress={() => navigation.navigate("Share")}
+              hitSlop={12}
+              style={{ paddingHorizontal: 16 }}
+              accessibilityLabel="Chia sẻ mã QR mở web"
+            >
+              <QrCode color={colors.onDark} size={22} />
+            </Pressable>
+          ),
+        })}
       />
       <Tab.Screen
         name="Category"
@@ -112,6 +124,8 @@ export default function RootNavigator() {
         component={AuthScreen}
         options={{ title: "Đăng nhập", presentation: "modal" }}
       />
+      <Stack.Screen name="Checkout" component={CheckoutScreen} options={{ title: "Đặt mua" }} />
+      <Stack.Screen name="Share" component={ShareScreen} options={{ title: "Chia sẻ / QR" }} />
       <Stack.Screen name="NewsDetail" component={NewsDetailScreen} options={{ title: "Tin tức" }} />
       <Stack.Screen name="Faq" component={FaqScreen} options={{ title: "Hỏi đáp" }} />
       <Stack.Screen name="Article" component={ArticleScreen} options={{ title: "Chính sách" }} />

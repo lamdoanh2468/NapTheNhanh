@@ -27,7 +27,7 @@ export default function HomeScreen() {
   const [denom, setDenom] = useState(null);
   const [qty, setQty] = useState(1);
   const [email, setEmail] = useState("");
-  const [paymentId, setPaymentId] = useState("momo");
+  const [paymentId, setPaymentId] = useState("vnpay");
   const [errors, setErrors] = useState({});
   const [processing, setProcessing] = useState(false);
   const [stage, setStage] = useState(null);

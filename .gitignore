@@ -23,6 +23,10 @@ yarn-error.*
 .env
 .env*.local
 
+# Firebase config (chứa key cấu hình — với EAS Build phải nạp qua file secret, xem README)
+google-services.json
+GoogleService-Info.plist
+
 # macOS
 .DS_Store
 *.pem
